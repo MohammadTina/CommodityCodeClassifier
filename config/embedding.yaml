@@ -1,0 +1,10 @@
+embedding:
+  # Swap model name here to change embedding model
+  model: "BAAI/bge-large-en-v1.5"
+  device: "cpu"               # cpu | cuda
+  batch_size: 32
+  normalize_embeddings: true
+
+  # Template for building embeddable text per national code
+  # Fields must match metadata keys from database query
+  text_template: "{tar_all} {hs6_dsc} {hs4_dsc} {hs2_dsc}"

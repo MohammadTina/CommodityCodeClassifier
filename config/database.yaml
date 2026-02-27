@@ -1,0 +1,146 @@
+database:
+  # Database connection string
+  # Set DB_CONNECTION_STRING environment variable before running
+  # 
+  # Examples:
+  #   Oracle (new driver): oracle+oracledb://user:password@host:port/?service_name=dbname
+  #   Oracle (old driver): oracle+cx_oracle://user:password@host:port/sid
+  #   PostgreSQL:          postgresql://user:password@host:port/dbname
+  #   MySQL:               mysql+pymysql://user:password@host:port/dbname
+  #   SQL Server:          mssql+pyodbc://user:password@host:port/dbname?driver=ODBC+Driver+17+for+SQL+Server
+  connection_string: "${DB_CONNECTION_STRING}"
+
+  # Table names - update these to match your database schema
+  # The system expects 5 levels of hierarchy in your commodity code database
+  tables:
+    section:    "commodity_section_table"     # Level 1: Section/top-level grouping
+    chapter:    "commodity_chapter_table"     # Level 2: Chapter (2-digit codes)
+    heading:    "commodity_heading_table"     # Level 3: Heading (4-digit codes)
+    subheading: "commodity_subheading_table"  # Level 4: Subheading (6-digit codes)
+    national:   "commodity_national_table"    # Level 5: National codes (8-10 digits, target)
+
+  # Column mappings per table
+  # Update these to match your actual column names
+  
+  columns:
+    # Section/top-level table columns
+    section:
+      code:        "SECTION_CODE"          # e.g., "01", "02", "03"
+      description: "SECTION_DESCRIPTION"   # e.g., "Live animals; animal products"
+      notes:       "SECTION_NOTES"         # Legal notes/exclusions (optional)
+      valid_from:  "VALID_FROM_DATE"       # Effective date
+      valid_to:    "VALID_TO_DATE"         # Expiry date (NULL = active)
+
+    # Chapter table columns (2-digit level)
+    chapter:
+      code:        "CHAPTER_CODE"          # e.g., "01", "02", "49"
+      description: "CHAPTER_DESCRIPTION"   # e.g., "Printed books, newspapers..."
+      notes:       "CHAPTER_NOTES"         # Legal notes/exclusions (optional)
+      parent_code: "SECTION_CODE"          # Foreign key to section table
+      valid_from:  "VALID_FROM_DATE"
+      valid_to:    "VALID_TO_DATE"
+
+    # Heading table columns (4-digit level)
+    heading:
+      code:        "HEADING_CODE"          # e.g., "0101", "4901"
+      description: "HEADING_DESCRIPTION"   # e.g., "Printed books, brochures..."
+      parent_code: "CHAPTER_CODE"          # Foreign key to chapter table
+      valid_from:  "VALID_FROM_DATE"
+      valid_to:    "VALID_TO_DATE"
+
+    # Subheading table columns (6-digit level)
+    subheading:
+      code:        "SUBHEADING_CODE"       # e.g., "010110", "490191"
+      description: "SUBHEADING_DESCRIPTION" # e.g., "Pure-bred breeding horses"
+      parent_code: "HEADING_CODE"          # Foreign key to heading table
+      valid_from:  "VALID_FROM_DATE"
+      valid_to:    "VALID_TO_DATE"
+
+    # National commodity table columns (target classification level)
+    national:
+      hs6_code:    "SUBHEADING_CODE"       # 6-digit subheading code (foreign key)
+      pr1:         "NATIONAL_SUFFIX"       # Additional digits for national code (e.g., "00", "10")
+      description: "SHORT_DESCRIPTION"     # Short commodity description
+      description_long: "FULL_DESCRIPTION" # Full/detailed commodity description
+      valid_from:  "VALID_FROM_DATE"
+      valid_to:    "VALID_TO_DATE"
+
+  # Filter for retrieving only active codes
+  # Codes with VALID_TO = NULL are considered currently active
+  active_filter: "VALID_TO_DATE IS NULL"
+
+
+# ============================================================================
+# CONFIGURATION NOTES
+# ============================================================================
+#
+# Database Schema Requirements:
+# ------------------------------
+# This system requires a hierarchical commodity code database with the following structure:
+#
+# 1. Five levels of tables (section → chapter → heading → subheading → national)
+# 2. Each level references its parent via a foreign key
+# 3. Each table has validity dates to track code history
+# 4. Optional: Legal notes columns at section/chapter level for exclusion rules
+#
+# Example Hierarchy:
+# ------------------
+# Section    (1-2 digits): "01" - Live animals; animal products
+#   ↓
+# Chapter    (2 digits):   "01" - Live animals
+#   ↓
+# Heading    (4 digits):   "0101" - Live horses, asses, mules
+#   ↓
+# Subheading (6 digits):   "010110" - Pure-bred breeding horses
+#   ↓
+# National   (8-10 digits): "01011000" - Pure-bred breeding horses (national code)
+#
+# National Code Construction:
+# ---------------------------
+# The system constructs the national code by concatenating:
+#   SUBHEADING_CODE + NATIONAL_SUFFIX
+#   Example: "490191" + "00" = "49019100"
+#
+# Required SQL Join Pattern:
+# --------------------------
+# The system performs this join to fetch all data for indexing:
+#
+#   national_table 
+#     JOIN subheading_table ON national.hs6_code = subheading.code
+#     JOIN heading_table    ON subheading.parent_code = heading.code
+#     JOIN chapter_table    ON heading.parent_code = chapter.code
+#     JOIN section_table    ON chapter.parent_code = section.code
+#   WHERE all tables have VALID_TO IS NULL (active codes only)
+#
+# Validation:
+# -----------
+# Before running the system, verify your database structure:
+#
+# 1. Check row counts at each level:
+#    SELECT COUNT(*) FROM national_table WHERE VALID_TO_DATE IS NULL;
+#
+# 2. Test the join query works:
+#    python scripts/build_index.py --dry-run
+#
+# 3. Verify a sample hierarchy chain:
+#    SELECT n.*, s.*, h.*, ch.*, sec.*
+#    FROM national_table n
+#    JOIN subheading_table s ON ...
+#    WHERE n.SUBHEADING_CODE = '490191' AND n.VALID_TO_DATE IS NULL;
+#
+# Common Adjustments:
+# -------------------
+# - If your database uses different naming (e.g., "HS2_COD" instead of "CHAPTER_CODE"),
+#   update the column mappings above
+#
+# - If you don't have a separate section table, you can skip it by:
+#   1. Removing "section" from tables
+#   2. Updating the query_builder.py to exclude section joins
+#
+# - If your codes don't have validity dates, set:
+#   active_filter: "1=1"  # returns all rows
+#
+# - If legal notes are in a separate table, you'll need to modify
+#   database/query_builder.py to add an additional join
+#
+# ============================================================================

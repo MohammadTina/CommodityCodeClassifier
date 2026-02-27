@@ -1,0 +1,11 @@
+retrieval:
+  semantic_top_k: 20        # candidates from vector search
+  bm25_top_k: 20            # candidates from keyword search
+  fusion_top_k: 10          # candidates after RRF fusion
+  llm_candidates: 3         # candidates passed to LLM (lean for 7B)
+  rrf_k: 60                 # RRF constant (standard value)
+
+  # Confidence thresholds for hierarchy clustering signal
+  confidence:
+    high_threshold: 0.7     # >70% candidates in same HS4 = high confidence
+    low_threshold: 0.4      # <40% = scattered, uncertain

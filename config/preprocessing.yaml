@@ -1,0 +1,46 @@
+preprocessing:
+  enabled: true
+
+  steps:
+    - name: strip_irrelevant_phrases
+      enabled: true
+      # Add more phrases as you discover them in real usage
+      phrases:
+        - "please classify"
+        - "what is the code for"
+        - "find the commodity code for"
+        - "classify this product"
+        - "i need the code for"
+        - "can you classify"
+        - "what code is"
+        - "tariff code for"
+        - "hs code for"
+
+    - name: abbreviation_expansion
+      enabled: true
+      # Add abbreviations as you discover them in real usage
+      mappings:
+        "PC": "personal computer"
+        "TV": "television"
+        "AC": "air conditioning"
+        "EV": "electric vehicle"
+        "LED": "light emitting diode"
+        "LCD": "liquid crystal display"
+        "NES": "not elsewhere specified"
+
+    - name: lowercase_normalize
+      enabled: true
+
+    - name: query_rewriting
+      # Uses LLM to rephrase query in commodity description style
+      # Enable only after baseline accuracy is established
+      enabled: false
+      model: null   # uses llm config if null
+
+    - name: hyde
+      # Hypothetical Document Embedding
+      # LLM generates a hypothetical commodity description, then we embed that
+      # Improves retrieval for informal product descriptions
+      # Enable only after baseline accuracy is established
+      enabled: false
+      model: null

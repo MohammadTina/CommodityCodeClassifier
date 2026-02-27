@@ -1,0 +1,26 @@
+# Core API
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+pydantic==2.9.0
+
+# Database
+sqlalchemy==2.0.35
+
+# Embeddings
+sentence-transformers==3.1.1
+torch==2.6
+
+# Vector search
+faiss-cpu==1.10.0
+
+# Keyword search
+rank-bm25==0.2.2
+
+# Config
+pyyaml==6.0.2
+
+# HTTP (for LLM client)
+requests==2.32.3
+
+# Utilities
+numpy==1.26.4

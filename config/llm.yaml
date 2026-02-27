@@ -1,0 +1,16 @@
+llm:
+  # Swap provider and model here — no code changes needed
+  provider: "ollama"                    # ollama | vllm
+  base_url: "http://localhost:11434"
+  model: "qwen2.5-coder:7b-instruct"
+  temperature: 0.1                      # low for deterministic classification
+  max_tokens: 800
+  timeout: 60                           # seconds — generous for local LLM
+
+  # vllm alternative config (comment out ollama block above)
+  # provider: "vllm"
+  # base_url: "http://localhost:8000"
+  # model: "Qwen/Qwen2.5-7B-Instruct"
+  # temperature: 0.1
+  # max_tokens: 800
+  # timeout: 60
